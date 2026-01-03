@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Inventory Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Chart.js for simple charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-alt: #111827;
+      --card: #020617;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.15);
+      --accent-strong: #06b6d4;
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --border-subtle: #1f2933;
+      --danger: #f97373;
+      --warning: #fbbf24;
+      --success: #22c55e;
+      --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.75);
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-pill: 999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1f2937, #020617 55%);
+      color: var(--text-main);
+      padding: 16px;
+    }
+    /* Force dropdown list background + text color */
+select option {
+  background-color: #0f172a !important; /* dark background */
+  color: #e5e7eb !important;            /* light text */
+}
+
+/* For Safari / iOS */
+select {
+  color-scheme: dark;
+}
+    .page {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px 16px;
+      margin-bottom: 16px;
+    }
+
+    .title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #f9fafb;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(15,23,42,0.6));
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 140px;
+      flex: 1;
+    }
+
+    .filter-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+
+    .filter-select,
+    .filter-input {
+      appearance: none;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: radial-gradient(circle at top left, rgba(56,189,248,0.06), rgba(15,23,42,0.95));
+      color: var(--text-main);
+      padding: 8px 32px 8px 12px;
+      font-size: 0.85rem;
+      outline: none;
+      position: relative;
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.7);
+    }
+
+    .filter-select:focus,
+    .filter-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent-soft), 0 0 0 6px rgba(56, 189, 248, 0.08);
+    }
+
+    .filters-row-right {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-start;
+      align-items: center;
+    }
+
+    .btn-reset {
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.06), rgba(15, 23, 42, 0.96));
+      color: var(--text-main);
+      font-size: 0.8rem;
+      padding: 7px 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .btn-reset:hover {
+      border-color: rgba(248, 250, 252, 0.5);
+      background: radial-gradient(circle at bottom right, rgba(15,23,42,0.96), rgba(56,189,248,0.07));
+    }
+
+    .btn-reset span {
+      font-size: 1rem;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .kpi-card {
+      background: radial-gradient(circle at top left, rgba(56,189,248,0.08), rgba(12,18,32,0.98));
+      border-radius: var(--radius-lg);
+      padding: 14px 14px 12px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.78);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(56,189,248,0.22), transparent 55%);
+      opacity: 0.22;
+      pointer-events: none;
+    }
+
+    .kpi-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #f9fafb;
+      margin-bottom: 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi-badge {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      font-size: 0.65rem;
+      padding: 3px 9px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      color: var(--accent-strong);
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(10px);
+    }
+
+    .kpi-badge.danger {
+      color: var(--danger);
+    }
+
+    .kpi-badge.warning {
+      color: var(--warning);
+    }
+
+    .kpi-badge.success {
+      color: var(--success);
+    }
+
+    .layout-main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.3fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .panel {
+      background: radial-gradient(circle at top, rgba(15,23,42,0.98), #020617);
+      border-radius: var(--radius-lg);
+      padding: 12px 12px 10px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .panel-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #e5e7eb;
+    }
+
+    .panel-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .chip {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: var(--text-muted);
+      background: linear-gradient(135deg, rgba(15,23,42,0.96), rgba(15,23,42,0.8));
+    }
+
+    .chart-container {
+      position: relative;
+      height: 240px;
+    }
+
+    .alerts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .table-wrapper {
+      max-height: 240px;
+      overflow: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      background: radial-gradient(circle at top left, rgba(15,23,42,1), rgba(2,6,23,0.98));
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      background: linear-gradient(to right, #020617, #030712);
+      z-index: 1;
+    }
+
+    th,
+    td {
+      padding: 6px 8px;
+      text-align: left;
+      border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+      white-space: nowrap;
+    }
+
+    th {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      position: sticky;
+      top: 0;
+      background: linear-gradient(to right, #020617, #030712);
+    }
+
+    tbody tr:nth-child(even) td {
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+    }
+
+    .pill.low {
+      color: var(--warning);
+      border-color: rgba(251, 191, 36, 0.55);
+      background: rgba(251, 191, 36, 0.05);
+    }
+
+    .pill.ok {
+      color: var(--success);
+      border-color: rgba(34, 197, 94, 0.45);
+      background: rgba(22, 163, 74, 0.04);
+    }
+
+    .pill.danger {
+      color: var(--danger);
+      border-color: rgba(248, 113, 113, 0.55);
+      background: rgba(127, 29, 29, 0.5);
+    }
+
+    .pill.condition-damaged {
+      color: var(--danger);
+      border-color: rgba(248, 113, 113, 0.5);
+      background: rgba(127, 29, 29, 0.5);
+    }
+
+    .pill.condition-used {
+      color: #eab308;
+      border-color: rgba(234, 179, 8, 0.45);
+      background: rgba(134, 65, 0, 0.45);
+    }
+
+    .pill.condition-new {
+      color: var(--success);
+      border-color: rgba(34, 197, 94, 0.5);
+      background: rgba(22, 163, 74, 0.5);
+    }
+
+    .footer-note {
+      margin-top: 6px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
+    @media (max-width: 1024px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .layout-main {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .alerts {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 10px;
+      }
+
+      .kpi-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .filters {
+        padding: 10px;
+      }
+
+      .filter-group {
+        min-width: 100%;
+      }
+
+      .chart-container {
+        height: 210px;
+      }
+
+      .table-wrapper {
+        max-height: 220px;
+      }
+
+      .title {
+        font-size: 1.25rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Header -->
+    <header class="header">
+      <div>
+        <div class="title">Inventory Control Dashboard</div>
+        <div class="subtitle">Real-time view of stock value, risk, and supplier exposure</div>
+      </div>
+    </header>
+
+    <!-- Filters -->
+    <section class="filters">
+      <div class="filter-group">
+        <label class="filter-label" for="filterCategory">Category</label>
+        <select id="filterCategory" class="filter-select">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="filterCountry">Supplier Country</label>
+        <select id="filterCountry" class="filter-select">
+          <option value="">All Countries</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="filterCondition">Condition</label>
+        <select id="filterCondition" class="filter-select">
+          <option value="">All Conditions</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="filterStatus">Stock Status</label>
+        <select id="filterStatus" class="filter-select">
+          <option value="">All Statuses</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="filterWarehouse">Warehouse</label>
+        <select id="filterWarehouse" class="filter-select">
+          <option value="">All Warehouses</option>
+        </select>
+      </div>
+
+      <div class="filter-group filters-row-right">
+        <div style="flex:1">
+          <label class="filter-label" for="searchItem">Search Item</label>
+          <input
+            id="searchItem"
+            class="filter-input"
+            type="text"
+            placeholder="Search by name or ID..."
+          />
+        </div>
+        <button id="resetFilters" class="btn-reset">
+          <span>⟳</span> Reset
+        </button>
+      </div>
+    </section>
+
+    <!-- KPIs -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-badge">Value</div>
+        <div class="kpi-label">Total Stock Value</div>
+        <div class="kpi-value" id="kpiTotalValue">SAR 0</div>
+        <div class="kpi-sub">All items after filters</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-badge success">Volume</div>
+        <div class="kpi-label">Total Quantity in Stock</div>
+        <div class="kpi-value" id="kpiTotalQty">0</div>
+        <div class="kpi-sub">Units across filtered items</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-badge warning">Risk</div>
+        <div class="kpi-label">Items Below Reorder Level</div>
+        <div class="kpi-value" id="kpiBelowReorder">0</div>
+        <div class="kpi-sub">Signals potential stock-out</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-badge danger">Loss</div>
+        <div class="kpi-label">Damaged Stock Value</div>
+        <div class="kpi-value" id="kpiDamagedValue">SAR 0</div>
+        <div class="kpi-sub">Value at risk (damaged)</div>
+      </div>
+    </section>
+
+    <!-- Main layout -->
+    <section class="layout-main">
+      <!-- Left: Chart -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Stock Value by Category</div>
+            <div class="panel-subtitle">Aggregated SAR value across categories (filtered)</div>
+          </div>
+          <span class="chip">Category Overview</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Right: Summary table -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Supplier Exposure</div>
+            <div class="panel-subtitle">Top countries by stock value</div>
+          </div>
+          <span class="chip">Country Mix</span>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th>Total Value (SAR)</th>
+                <th>Items</th>
+              </tr>
+            </thead>
+            <tbody id="supplierSummaryBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Alerts -->
+    <section class="alerts">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Below Reorder Level</div>
+            <div class="panel-subtitle">Highest priority to restock</div>
+          </div>
+          <span class="chip">Restock Alerts</span>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Reorder</th>
+                <th>Supplier</th>
+                <th>Next Restock</th>
+              </tr>
+            </thead>
+            <tbody id="belowReorderBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Damaged / At Risk</div>
+            <div class="panel-subtitle">Monitor value tied up in damaged stock</div>
+          </div>
+          <span class="chip">Condition Risk</span>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Category</th>
+                <th>Condition</th>
+                <th>Value (SAR)</th>
+              </tr>
+            </thead>
+            <tbody id="damagedBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Full items table -->
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">All Inventory Items</div>
+          <div class="panel-subtitle">Filtered list with key operational details</div>
+        </div>
+        <span class="chip">Detail View</span>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Item</th>
+              <th>Cat.</th>
+              <th>Qty</th>
+              <th>Reorder</th>
+              <th>Status</th>
+              <th>Condition</th>
+              <th>Warehouse</th>
+              <th>Supplier</th>
+              <th>Country</th>
+              <th>Total Value</th>
+              <th>Expiry</th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+      </div>
+      <div class="footer-note">
+        View is reactive to filters above. Resize window to test mobile layout.
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // ----------------------
+    // Data (from your CSV)
+    // ----------------------
+    const rawData = [
+      {"Item_ID":"ITM0001","Item_Name":"Food Item 107","Category":"Food","Quantity_in_Stock":169,"Reorder_Level":55,"Unit_Price_SAR":989.72,"Total_Value_SAR":167262.68,"Supplier_Name":"Koch, Reilly and Sanders","Supplier_Country":"France","Last_Restock_Date":"2025-02-13","Next_Restock_Planned":"2025-05-14","Warehouse_Location":"D3","Expiry_Date":"2027-01-06","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0002","Item_Name":"Cosmetics Item 612","Category":"Cosmetics","Quantity_in_Stock":387,"Reorder_Level":86,"Unit_Price_SAR":1541.97,"Total_Value_SAR":596742.39,"Supplier_Name":"Sanders-Campbell","Supplier_Country":"Turkey","Last_Restock_Date":"2025-07-13","Next_Restock_Planned":"2025-10-07","Warehouse_Location":"A3","Expiry_Date":"2027-05-11","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0003","Item_Name":"Furniture Item 196","Category":"Furniture","Quantity_in_Stock":247,"Reorder_Level":70,"Unit_Price_SAR":842.71,"Total_Value_SAR":208149.37,"Supplier_Name":"Hughes-Diaz","Supplier_Country":"USA","Last_Restock_Date":"2025-03-17","Next_Restock_Planned":"2025-05-22","Warehouse_Location":"D4","Expiry_Date":"","Condition":"New","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0004","Item_Name":"Cosmetics Item 188","Category":"Cosmetics","Quantity_in_Stock":22,"Reorder_Level":79,"Unit_Price_SAR":1955.44,"Total_Value_SAR":43019.68,"Supplier_Name":"Hamilton-Salas","Supplier_Country":"France","Last_Restock_Date":"2025-08-04","Next_Restock_Planned":"2025-08-27","Warehouse_Location":"B5","Expiry_Date":"2027-04-23","Condition":"New","Stock_Status":"Low Stock"},
+      {"Item_ID":"ITM0005","Item_Name":"Stationery Item 413","Category":"Stationery","Quantity_in_Stock":269,"Reorder_Level":28,"Unit_Price_SAR":1443.07,"Total_Value_SAR":388185.83,"Supplier_Name":"Leonard, Miller and Sharp","Supplier_Country":"Saudi Arabia","Last_Restock_Date":"2025-05-24","Next_Restock_Planned":"2025-08-02","Warehouse_Location":"B1","Expiry_Date":"","Condition":"New","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0006","Item_Name":"Furniture Item 323","Category":"Furniture","Quantity_in_Stock":7,"Reorder_Level":94,"Unit_Price_SAR":626.69,"Total_Value_SAR":4386.83,"Supplier_Name":"Cole LLC","Supplier_Country":"France","Last_Restock_Date":"2025-03-08","Next_Restock_Planned":"2025-04-25","Warehouse_Location":"E5","Expiry_Date":"","Condition":"Damaged","Stock_Status":"Low Stock"},
+      {"Item_ID":"ITM0007","Item_Name":"Food Item 236","Category":"Food","Quantity_in_Stock":151,"Reorder_Level":68,"Unit_Price_SAR":1050.17,"Total_Value_SAR":158575.67,"Supplier_Name":"Powers-Anderson","Supplier_Country":"China","Last_Restock_Date":"2025-02-22","Next_Restock_Planned":"2025-03-09","Warehouse_Location":"D3","Expiry_Date":"2026-05-28","Condition":"New","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0008","Item_Name":"Clothing Item 806","Category":"Clothing","Quantity_in_Stock":308,"Reorder_Level":22,"Unit_Price_SAR":1908.3,"Total_Value_SAR":587756.4,"Supplier_Name":"Curtis-Lopez","Supplier_Country":"Germany","Last_Restock_Date":"2025-02-16","Next_Restock_Planned":"2025-03-03","Warehouse_Location":"C2","Expiry_Date":"","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0009","Item_Name":"Cosmetics Item 741","Category":"Cosmetics","Quantity_in_Stock":293,"Reorder_Level":42,"Unit_Price_SAR":294.28,"Total_Value_SAR":86224.04,"Supplier_Name":"Blackburn-Flores","Supplier_Country":"USA","Last_Restock_Date":"2025-07-21","Next_Restock_Planned":"2025-09-26","Warehouse_Location":"E1","Expiry_Date":"2027-06-21","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0010","Item_Name":"Tools Item 170","Category":"Tools","Quantity_in_Stock":358,"Reorder_Level":74,"Unit_Price_SAR":1422.83,"Total_Value_SAR":509373.14,"Supplier_Name":"Shea Ltd","Supplier_Country":"UAE","Last_Restock_Date":"2025-08-05","Next_Restock_Planned":"2025-10-07","Warehouse_Location":"C5","Expiry_Date":"","Condition":"New","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0011","Item_Name":"Cosmetics Item 657","Category":"Cosmetics","Quantity_in_Stock":475,"Reorder_Level":64,"Unit_Price_SAR":1276.1,"Total_Value_SAR":606147.5,"Supplier_Name":"Bennett-Williams","Supplier_Country":"China","Last_Restock_Date":"2025-07-10","Next_Restock_Planned":"2025-09-23","Warehouse_Location":"A3","Expiry_Date":"2026-02-02","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0012","Item_Name":"Clothing Item 849","Category":"Clothing","Quantity_in_Stock":70,"Reorder_Level":100,"Unit_Price_SAR":474.72,"Total_Value_SAR":33230.4,"Supplier_Name":"Velez, Myers and Brown","Supplier_Country":"Germany","Last_Restock_Date":"2025-06-04","Next_Restock_Planned":"2025-07-07","Warehouse_Location":"A1","Expiry_Date":"","Condition":"Damaged","Stock_Status":"Low Stock"},
+      {"Item_ID":"ITM0013","Item_Name":"Furniture Item 724","Category":"Furniture","Quantity_in_Stock":132,"Reorder_Level":95,"Unit_Price_SAR":1786.91,"Total_Value_SAR":235872.12,"Supplier_Name":"Thompson-Mays","Supplier_Country":"France","Last_Restock_Date":"2025-07-06","Next_Restock_Planned":"2025-09-29","Warehouse_Location":"E3","Expiry_Date":"","Condition":"New","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0014","Item_Name":"Food Item 489","Category":"Food","Quantity_in_Stock":310,"Reorder_Level":93,"Unit_Price_SAR":1068.95,"Total_Value_SAR":331374.5,"Supplier_Name":"Morales, Cordova and Adams","Supplier_Country":"Turkey","Last_Restock_Date":"2025-07-19","Next_Restock_Planned":"2025-10-16","Warehouse_Location":"D3","Expiry_Date":"2026-11-12","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0015","Item_Name":"Tools Item 738","Category":"Tools","Quantity_in_Stock":68,"Reorder_Level":47,"Unit_Price_SAR":969.36,"Total_Value_SAR":65916.48,"Supplier_Name":"Price, Ruiz and Jones","Supplier_Country":"China","Last_Restock_Date":"2025-02-15","Next_Restock_Planned":"2025-04-24","Warehouse_Location":"B3","Expiry_Date":"","Condition":"New","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0016","Item_Name":"Electronics Item 869","Category":"Electronics","Quantity_in_Stock":112,"Reorder_Level":47,"Unit_Price_SAR":708.62,"Total_Value_SAR":79365.44,"Supplier_Name":"Mejia, Davis and Davis","Supplier_Country":"India","Last_Restock_Date":"2025-02-14","Next_Restock_Planned":"2025-05-06","Warehouse_Location":"D1","Expiry_Date":"","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0017","Item_Name":"Furniture Item 350","Category":"Furniture","Quantity_in_Stock":204,"Reorder_Level":33,"Unit_Price_SAR":1347.85,"Total_Value_SAR":274961.4,"Supplier_Name":"Moses-Montes","Supplier_Country":"Saudi Arabia","Last_Restock_Date":"2025-07-22","Next_Restock_Planned":"2025-09-26","Warehouse_Location":"D1","Expiry_Date":"","Condition":"New","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0018","Item_Name":"Clothing Item 968","Category":"Clothing","Quantity_in_Stock":113,"Reorder_Level":85,"Unit_Price_SAR":88.13,"Total_Value_SAR":9958.69,"Supplier_Name":"Bird PLC","Supplier_Country":"Japan","Last_Restock_Date":"2025-04-07","Next_Restock_Planned":"2025-06-28","Warehouse_Location":"B5","Expiry_Date":"","Condition":"New","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0019","Item_Name":"Food Item 662","Category":"Food","Quantity_in_Stock":446,"Reorder_Level":94,"Unit_Price_SAR":488.25,"Total_Value_SAR":217759.5,"Supplier_Name":"Hernandez, Burton and Jackson","Supplier_Country":"Turkey","Last_Restock_Date":"2025-04-26","Next_Restock_Planned":"2025-05-15","Warehouse_Location":"D1","Expiry_Date":"2027-03-23","Condition":"New","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0020","Item_Name":"Furniture Item 408","Category":"Furniture","Quantity_in_Stock":452,"Reorder_Level":57,"Unit_Price_SAR":120.92,"Total_Value_SAR":54655.84,"Supplier_Name":"Evans, Jackson and Martinez","Supplier_Country":"UAE","Last_Restock_Date":"2025-07-30","Next_Restock_Planned":"2025-10-08","Warehouse_Location":"C3","Expiry_Date":"","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0021","Item_Name":"Stationery Item 440","Category":"Stationery","Quantity_in_Stock":146,"Reorder_Level":82,"Unit_Price_SAR":1259.5,"Total_Value_SAR":183887.0,"Supplier_Name":"Gordon-Kemp","Supplier_Country":"France","Last_Restock_Date":"2025-06-30","Next_Restock_Planned":"2025-09-26","Warehouse_Location":"D1","Expiry_Date":"","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0022","Item_Name":"Clothing Item 891","Category":"Clothing","Quantity_in_Stock":39,"Reorder_Level":30,"Unit_Price_SAR":1566.87,"Total_Value_SAR":61107.93,"Supplier_Name":"Johnson-Jenkins","Supplier_Country":"USA","Last_Restock_Date":"2025-06-30","Next_Restock_Planned":"2025-07-30","Warehouse_Location":"D4","Expiry_Date":"","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0023","Item_Name":"Furniture Item 920","Category":"Furniture","Quantity_in_Stock":288,"Reorder_Level":93,"Unit_Price_SAR":1770.0,"Total_Value_SAR":509760.0,"Supplier_Name":"Crawford LLC","Supplier_Country":"USA","Last_Restock_Date":"2025-02-23","Next_Restock_Planned":"2025-03-16","Warehouse_Location":"E1","Expiry_Date":"","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0024","Item_Name":"Furniture Item 709","Category":"Furniture","Quantity_in_Stock":262,"Reorder_Level":78,"Unit_Price_SAR":1341.87,"Total_Value_SAR":351569.94,"Supplier_Name":"Jones, White and Shepard","Supplier_Country":"Germany","Last_Restock_Date":"2025-07-07","Next_Restock_Planned":"2025-08-31","Warehouse_Location":"E3","Expiry_Date":"","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0025","Item_Name":"Tools Item 728","Category":"Tools","Quantity_in_Stock":119,"Reorder_Level":51,"Unit_Price_SAR":559.48,"Total_Value_SAR":66578.12,"Supplier_Name":"Flynn PLC","Supplier_Country":"UAE","Last_Restock_Date":"2025-07-23","Next_Restock_Planned":"2025-08-22","Warehouse_Location":"E3","Expiry_Date":"","Condition":"New","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0026","Item_Name":"Clothing Item 425","Category":"Clothing","Quantity_in_Stock":449,"Reorder_Level":80,"Unit_Price_SAR":290.7,"Total_Value_SAR":130524.3,"Supplier_Name":"Watson-Fields","Supplier_Country":"Italy","Last_Restock_Date":"2025-06-04","Next_Restock_Planned":"2025-07-08","Warehouse_Location":"D2","Expiry_Date":"","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0027","Item_Name":"Tools Item 778","Category":"Tools","Quantity_in_Stock":290,"Reorder_Level":45,"Unit_Price_SAR":1619.8,"Total_Value_SAR":469742.0,"Supplier_Name":"Dennis PLC","Supplier_Country":"Japan","Last_Restock_Date":"2025-02-15","Next_Restock_Planned":"2025-05-13","Warehouse_Location":"A3","Expiry_Date":"","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0028","Item_Name":"Electronics Item 834","Category":"Electronics","Quantity_in_Stock":313,"Reorder_Level":86,"Unit_Price_SAR":309.78,"Total_Value_SAR":96961.14,"Supplier_Name":"Dillon, Zamora and Hardy","Supplier_Country":"France","Last_Restock_Date":"2025-06-03","Next_Restock_Planned":"2025-08-01","Warehouse_Location":"D5","Expiry_Date":"","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0029","Item_Name":"Cosmetics Item 320","Category":"Cosmetics","Quantity_in_Stock":154,"Reorder_Level":69,"Unit_Price_SAR":1394.29,"Total_Value_SAR":214720.66,"Supplier_Name":"Green, Benson and Dixon","Supplier_Country":"Japan","Last_Restock_Date":"2025-03-24","Next_Restock_Planned":"2025-06-13","Warehouse_Location":"C4","Expiry_Date":"2026-04-28","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0030","Item_Name":"Tools Item 119","Category":"Tools","Quantity_in_Stock":492,"Reorder_Level":53,"Unit_Price_SAR":1628.96,"Total_Value_SAR":801448.32,"Supplier_Name":"Guzman and Sons","Supplier_Country":"Italy","Last_Restock_Date":"2025-02-15","Next_Restock_Planned":"2025-04-22","Warehouse_Location":"E5","Expiry_Date":"","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0031","Item_Name":"Tools Item 775","Category":"Tools","Quantity_in_Stock":189,"Reorder_Level":75,"Unit_Price_SAR":462.91,"Total_Value_SAR":87489.99,"Supplier_Name":"Zavala Inc","Supplier_Country":"Italy","Last_Restock_Date":"2025-04-21","Next_Restock_Planned":"2025-05-20","Warehouse_Location":"E2","Expiry_Date":"","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0032","Item_Name":"Electronics Item 311","Category":"Electronics","Quantity_in_Stock":194,"Reorder_Level":39,"Unit_Price_SAR":1421.38,"Total_Value_SAR":275747.72,"Supplier_Name":"Guzman, Brooks and Jacobs","Supplier_Country":"Italy","Last_Restock_Date":"2025-03-12","Next_Restock_Planned":"2025-04-10","Warehouse_Location":"B2","Expiry_Date":"","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0033","Item_Name":"Cosmetics Item 457","Category":"Cosmetics","Quantity_in_Stock":268,"Reorder_Level":44,"Unit_Price_SAR":182.73,"Total_Value_SAR":48971.64,"Supplier_Name":"Robbins, Jones and Lester","Supplier_Country":"UAE","Last_Restock_Date":"2025-05-15","Next_Restock_Planned":"2025-06-11","Warehouse_Location":"D2","Expiry_Date":"2026-02-25","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0034","Item_Name":"Tools Item 971","Category":"Tools","Quantity_in_Stock":84,"Reorder_Level":93,"Unit_Price_SAR":1665.53,"Total_Value_SAR":139904.52,"Supplier_Name":"Torres-Bishop","Supplier_Country":"Japan","Last_Restock_Date":"2025-04-09","Next_Restock_Planned":"2025-06-22","Warehouse_Location":"D2","Expiry_Date":"","Condition":"New","Stock_Status":"Low Stock"},
+      {"Item_ID":"ITM0035","Item_Name":"Tools Item 185","Category":"Tools","Quantity_in_Stock":270,"Reorder_Level":35,"Unit_Price_SAR":937.2,"Total_Value_SAR":253044.0,"Supplier_Name":"Hampton-Edwards","Supplier_Country":"USA","Last_Restock_Date":"2025-08-08","Next_Restock_Planned":"2025-10-11","Warehouse_Location":"D2","Expiry_Date":"","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0036","Item_Name":"Clothing Item 908","Category":"Clothing","Quantity_in_Stock":134,"Reorder_Level":62,"Unit_Price_SAR":139.32,"Total_Value_SAR":18668.88,"Supplier_Name":"Banks-Holder","Supplier_Country":"Italy","Last_Restock_Date":"2025-03-05","Next_Restock_Planned":"2025-05-22","Warehouse_Location":"A3","Expiry_Date":"","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0037","Item_Name":"Cosmetics Item 242","Category":"Cosmetics","Quantity_in_Stock":117,"Reorder_Level":72,"Unit_Price_SAR":636.42,"Total_Value_SAR":74461.14,"Supplier_Name":"Pittman and Sons","Supplier_Country":"France","Last_Restock_Date":"2025-03-04","Next_Restock_Planned":"2025-04-15","Warehouse_Location":"C3","Expiry_Date":"2026-01-14","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0038","Item_Name":"Tools Item 963","Category":"Tools","Quantity_in_Stock":261,"Reorder_Level":51,"Unit_Price_SAR":695.76,"Total_Value_SAR":181593.36,"Supplier_Name":"Murphy-Martin","Supplier_Country":"Italy","Last_Restock_Date":"2025-07-04","Next_Restock_Planned":"2025-08-31","Warehouse_Location":"E1","Expiry_Date":"","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0039","Item_Name":"Stationery Item 524","Category":"Stationery","Quantity_in_Stock":194,"Reorder_Level":69,"Unit_Price_SAR":788.52,"Total_Value_SAR":152972.88,"Supplier_Name":"Garrett-Sims","Supplier_Country":"Japan","Last_Restock_Date":"2025-02-11","Next_Restock_Planned":"2025-03-21","Warehouse_Location":"D2","Expiry_Date":"","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0040","Item_Name":"Stationery Item 374","Category":"Stationery","Quantity_in_Stock":396,"Reorder_Level":30,"Unit_Price_SAR":1732.79,"Total_Value_SAR":686184.84,"Supplier_Name":"Butler-Moreno","Supplier_Country":"India","Last_Restock_Date":"2025-07-05","Next_Restock_Planned":"2025-07-20","Warehouse_Location":"E3","Expiry_Date":"","Condition":"New","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0041","Item_Name":"Food Item 363","Category":"Food","Quantity_in_Stock":474,"Reorder_Level":31,"Unit_Price_SAR":740.28,"Total_Value_SAR":350892.72,"Supplier_Name":"Harrington Group","Supplier_Country":"Germany","Last_Restock_Date":"2025-05-05","Next_Restock_Planned":"2025-06-10","Warehouse_Location":"A2","Expiry_Date":"2026-11-04","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0042","Item_Name":"Furniture Item 181","Category":"Furniture","Quantity_in_Stock":266,"Reorder_Level":47,"Unit_Price_SAR":1030.95,"Total_Value_SAR":274232.7,"Supplier_Name":"Gates-Frey","Supplier_Country":"Japan","Last_Restock_Date":"2025-03-25","Next_Restock_Planned":"2025-04-20","Warehouse_Location":"C2","Expiry_Date":"","Condition":"New","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0043","Item_Name":"Tools Item 242","Category":"Tools","Quantity_in_Stock":499,"Reorder_Level":71,"Unit_Price_SAR":1370.89,"Total_Value_SAR":684074.11,"Supplier_Name":"Morris-Schaefer","Supplier_Country":"USA","Last_Restock_Date":"2025-02-19","Next_Restock_Planned":"2025-03-22","Warehouse_Location":"B5","Expiry_Date":"","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0044","Item_Name":"Electronics Item 718","Category":"Electronics","Quantity_in_Stock":259,"Reorder_Level":68,"Unit_Price_SAR":1008.2,"Total_Value_SAR":261123.8,"Supplier_Name":"Reed PLC","Supplier_Country":"China","Last_Restock_Date":"2025-04-04","Next_Restock_Planned":"2025-04-26","Warehouse_Location":"C2","Expiry_Date":"","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0045","Item_Name":"Electronics Item 636","Category":"Electronics","Quantity_in_Stock":123,"Reorder_Level":44,"Unit_Price_SAR":242.31,"Total_Value_SAR":29804.13,"Supplier_Name":"Parker-Graham","Supplier_Country":"USA","Last_Restock_Date":"2025-07-31","Next_Restock_Planned":"2025-09-06","Warehouse_Location":"E5","Expiry_Date":"","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0046","Item_Name":"Furniture Item 270","Category":"Furniture","Quantity_in_Stock":275,"Reorder_Level":97,"Unit_Price_SAR":1482.91,"Total_Value_SAR":407800.25,"Supplier_Name":"Sosa-Taylor","Supplier_Country":"Japan","Last_Restock_Date":"2025-05-05","Next_Restock_Planned":"2025-05-26","Warehouse_Location":"D5","Expiry_Date":"","Condition":"New","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0047","Item_Name":"Food Item 697","Category":"Food","Quantity_in_Stock":53,"Reorder_Level":50,"Unit_Price_SAR":1659.68,"Total_Value_SAR":87963.04,"Supplier_Name":"Mitchell Group","Supplier_Country":"India","Last_Restock_Date":"2025-08-05","Next_Restock_Planned":"2025-08-28","Warehouse_Location":"B5","Expiry_Date":"2026-11-06","Condition":"New","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0048","Item_Name":"Cosmetics Item 896","Category":"Cosmetics","Quantity_in_Stock":298,"Reorder_Level":50,"Unit_Price_SAR":1872.77,"Total_Value_SAR":558085.46,"Supplier_Name":"Castillo, Davis and Lee","Supplier_Country":"Turkey","Last_Restock_Date":"2025-05-12","Next_Restock_Planned":"2025-06-03","Warehouse_Location":"B5","Expiry_Date":"2026-12-21","Condition":"Damaged","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0049","Item_Name":"Clothing Item 518","Category":"Clothing","Quantity_in_Stock":394,"Reorder_Level":67,"Unit_Price_SAR":990.72,"Total_Value_SAR":390343.68,"Supplier_Name":"Jimenez, Stevenson and Bailey","Supplier_Country":"China","Last_Restock_Date":"2025-05-11","Next_Restock_Planned":"2025-06-27","Warehouse_Location":"B1","Expiry_Date":"","Condition":"Used","Stock_Status":"In Stock"},
+      {"Item_ID":"ITM0050","Item_Name":"Stationery Item 476","Category":"Stationery","Quantity_in_Stock":338,"Reorder_Level":86,"Unit_Price_SAR":413.44,"Total_Value_SAR":139742.72,"Supplier_Name":"King Ltd","Supplier_Country":"China","Last_Restock_Date":"2025-06-05","Next_Restock_Planned":"2025-07-03","Warehouse_Location":"E1","Expiry_Date":"","Condition":"New","Stock_Status":"In Stock"}
+    ];
+
+    // --------------
+    // State
+    // --------------
+    let filteredData = [...rawData];
+    let categoryChart = null;
+
+    // --------------
+    // Helpers
+    // --------------
+    function formatSAR(value) {
+      return "SAR " + value.toLocaleString("en-SA", { maximumFractionDigits: 2 });
+    }
+
+    function getPillClassForStatus(item) {
+      const qty = item.Quantity_in_Stock;
+      const reorder = item.Reorder_Level;
+      if (qty < reorder) return "pill danger";
+      if (item.Stock_Status === "Low Stock") return "pill low";
+      return "pill ok";
+    }
+
+    function getConditionPillClass(condition) {
+      if (condition === "Damaged") return "pill condition-damaged";
+      if (condition === "Used") return "pill condition-used";
+      return "pill condition-new";
+    }
+
+    // --------------
+    // Filters logic
+    // --------------
+    function applyFilters() {
+      const category = document.getElementById("filterCategory").value;
+      const country = document.getElementById("filterCountry").value;
+      const condition = document.getElementById("filterCondition").value;
+      const status = document.getElementById("filterStatus").value;
+      const warehouse = document.getElementById("filterWarehouse").value;
+      const search = document.getElementById("searchItem").value.trim().toLowerCase();
+
+      filteredData = rawData.filter((item) => {
+        if (category && item.Category !== category) return false;
+        if (country && item.Supplier_Country !== country) return false;
+        if (condition && item.Condition !== condition) return false;
+        if (status && item.Stock_Status !== status) return false;
+        if (warehouse && item.Warehouse_Location !== warehouse) return false;
+
+        if (search) {
+          const hay = (item.Item_ID + " " + item.Item_Name).toLowerCase();
+          if (!hay.includes(search)) return false;
+        }
+
+        return true;
+      });
+
+      updateDashboard();
+    }
+
+    function resetFilters() {
+      document.getElementById("filterCategory").value = "";
+      document.getElementById("filterCountry").value = "";
+      document.getElementById("filterCondition").value = "";
+      document.getElementById("filterStatus").value = "";
+      document.getElementById("filterWarehouse").value = "";
+      document.getElementById("searchItem").value = "";
+      filteredData = [...rawData];
+      updateDashboard();
+    }
+
+    // --------------
+    // Populate filter options
+    // --------------
+    function populateFilterOptions() {
+      const categorySet = new Set();
+      const countrySet = new Set();
+      const conditionSet = new Set();
+      const statusSet = new Set();
+      const warehouseSet = new Set();
+
+      rawData.forEach((item) => {
+        categorySet.add(item.Category);
+        countrySet.add(item.Supplier_Country);
+        conditionSet.add(item.Condition);
+        statusSet.add(item.Stock_Status);
+        warehouseSet.add(item.Warehouse_Location);
+      });
+
+      function fillSelect(id, values) {
+        const select = document.getElementById(id);
+        values.sort().forEach((val) => {
+          const opt = document.createElement("option");
+          opt.value = val;
+          opt.textContent = val;
+          select.appendChild(opt);
+        });
+      }
+
+      fillSelect("filterCategory", Array.from(categorySet));
+      fillSelect("filterCountry", Array.from(countrySet));
+      fillSelect("filterCondition", Array.from(conditionSet));
+      fillSelect("filterStatus", Array.from(statusSet));
+      fillSelect("filterWarehouse", Array.from(warehouseSet));
+    }
+
+    // --------------
+    // KPI calculation
+    // --------------
+    function updateKPIs() {
+      const totalValue = filteredData.reduce((sum, item) => sum + item.Total_Value_SAR, 0);
+      const totalQty = filteredData.reduce((sum, item) => sum + item.Quantity_in_Stock, 0);
+      const belowReorder = filteredData.filter(
+        (item) => item.Quantity_in_Stock < item.Reorder_Level
+      ).length;
+      const damagedValue = filteredData
+        .filter((item) => item.Condition === "Damaged")
+        .reduce((sum, item) => sum + item.Total_Value_SAR, 0);
+
+      document.getElementById("kpiTotalValue").textContent = formatSAR(totalValue);
+      document.getElementById("kpiTotalQty").textContent = totalQty.toLocaleString("en-SA");
+      document.getElementById("kpiBelowReorder").textContent = belowReorder;
+      document.getElementById("kpiDamagedValue").textContent = formatSAR(damagedValue);
+    }
+
+    // --------------
+    // Chart update
+    // --------------
+    function updateCategoryChart() {
+      const byCategory = {};
+      filteredData.forEach((item) => {
+        byCategory[item.Category] = (byCategory[item.Category] || 0) + item.Total_Value_SAR;
+      });
+
+      const labels = Object.keys(byCategory);
+      const values = Object.values(byCategory);
+
+      const ctx = document.getElementById("categoryChart").getContext("2d");
+
+      if (categoryChart) {
+        categoryChart.destroy();
+      }
+
+      categoryChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Total Value (SAR)",
+              data: values,
+              backgroundColor: "rgba(56, 189, 248, 0.5)",
+              borderColor: "rgba(56, 189, 248, 1)",
+              borderWidth: 1.5,
+              borderRadius: 12,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: {
+                color: "#9ca3af",
+                font: { size: 11 },
+              },
+              grid: {
+                display: false,
+              },
+            },
+            y: {
+              ticks: {
+                color: "#6b7280",
+                font: { size: 10 },
+                callback: function (value) {
+                  if (value >= 1000000) return value / 1000000 + "M";
+                  if (value >= 1000) return value / 1000 + "k";
+                  return value;
+                },
+              },
+              grid: {
+                color: "rgba(55, 65, 81, 0.6)",
+              },
+            },
+          },
+          plugins: {
+            legend: {
+              display: false,
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => formatSAR(ctx.parsed.y),
+              },
+            },
+          },
+        },
+      });
+    }
+
+    // --------------
+    // Supplier summary
+    // --------------
+    function updateSupplierSummary() {
+      const byCountry = {};
+      filteredData.forEach((item) => {
+        const key = item.Supplier_Country;
+        if (!byCountry[key]) {
+          byCountry[key] = { totalValue: 0, count: 0 };
+        }
+        byCountry[key].totalValue += item.Total_Value_SAR;
+        byCountry[key].count += 1;
+      });
+
+      const rows = Object.entries(byCountry)
+        .map(([country, stats]) => ({
+          country,
+          totalValue: stats.totalValue,
+          count: stats.count,
+        }))
+        .sort((a, b) => b.totalValue - a.totalValue);
+
+      const tbody = document.getElementById("supplierSummaryBody");
+      tbody.innerHTML = "";
+      rows.forEach((r) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.country}</td>
+          <td>${formatSAR(r.totalValue)}</td>
+          <td>${r.count}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --------------
+    // Alerts tables
+    // --------------
+    function updateAlerts() {
+      const belowReorderRows = filteredData
+        .filter((item) => item.Quantity_in_Stock < item.Reorder_Level)
+        .sort((a, b) => a.Quantity_in_Stock - b.Quantity_in_Stock)
+        .slice(0, 12);
+
+      const belowTbody = document.getElementById("belowReorderBody");
+      belowTbody.innerHTML = "";
+
+      belowReorderRows.forEach((item) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${item.Item_Name}</td>
+          <td>${item.Quantity_in_Stock}</td>
+          <td>${item.Reorder_Level}</td>
+          <td>${item.Supplier_Name}</td>
+          <td>${item.Next_Restock_Planned || "-"}</td>
+        `;
+        belowTbody.appendChild(tr);
+      });
+
+      const damagedRows = filteredData
+        .filter((item) => item.Condition === "Damaged")
+        .sort((a, b) => b.Total_Value_SAR - a.Total_Value_SAR)
+        .slice(0, 12);
+
+      const damagedTbody = document.getElementById("damagedBody");
+      damagedTbody.innerHTML = "";
+      damagedRows.forEach((item) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${item.Item_Name}</td>
+          <td>${item.Category}</td>
+          <td><span class="${getConditionPillClass(item.Condition)}">${item.Condition}</span></td>
+          <td>${formatSAR(item.Total_Value_SAR)}</td>
+        `;
+        damagedTbody.appendChild(tr);
+      });
+    }
+
+    // --------------
+    // Full items table
+    // --------------
+    function updateItemsTable() {
+      const tbody = document.getElementById("itemsBody");
+      tbody.innerHTML = "";
+
+      filteredData.forEach((item) => {
+        const tr = document.createElement("tr");
+        const statusClass = getPillClassForStatus(item);
+        const conditionClass = getConditionPillClass(item.Condition);
+        tr.innerHTML = `
+          <td>${item.Item_ID}</td>
+          <td>${item.Item_Name}</td>
+          <td>${item.Category}</td>
+          <td>${item.Quantity_in_Stock}</td>
+          <td>${item.Reorder_Level}</td>
+          <td><span class="${statusClass}">${item.Stock_Status}</span></td>
+          <td><span class="${conditionClass}">${item.Condition}</span></td>
+          <td>${item.Warehouse_Location}</td>
+          <td>${item.Supplier_Name}</td>
+          <td>${item.Supplier_Country}</td>
+          <td>${formatSAR(item.Total_Value_SAR)}</td>
+          <td>${item.Expiry_Date || "-"}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --------------
+    // Main update
+    // --------------
+    function updateDashboard() {
+      updateKPIs();
+      updateCategoryChart();
+      updateSupplierSummary();
+      updateAlerts();
+      updateItemsTable();
+    }
+
+    // --------------
+    // Init
+    // --------------
+    document.addEventListener("DOMContentLoaded", () => {
+      populateFilterOptions();
+      updateDashboard();
+
+      [
+        "filterCategory",
+        "filterCountry",
+        "filterCondition",
+        "filterStatus",
+        "filterWarehouse",
+      ].forEach((id) => {
+        document.getElementById(id).addEventListener("change", applyFilters);
+      });
+
+      document.getElementById("searchItem").addEventListener("input", () => {
+        // small debounce via timeout if needed; here direct is fine for 50 rows
+        applyFilters();
+      });
+
+      document.getElementById("resetFilters").addEventListener("click", resetFilters);
+    });
+  </script>
+</body>
+</html>
